@@ -3,85 +3,247 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Monitoreo de tiendas y disputas</title>
+  <meta name="robots" content="noindex, nofollow">
+  <title>Panel Delivery Tarragona</title>
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-  <header class="top">
-    <div>
-      <h1>Monitoreo de tiendas y disputas</h1>
-      <p id="subtitle" class="muted">Cargando snapshot…</p>
+  <header class="appbar">
+    <div class="appbar-inner">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">TD</span>
+        <div>
+          <strong>Panel Delivery</strong>
+          <span class="muted small">Tarragona · hora de Chile</span>
+        </div>
+      </div>
+      <form method="post" action="/logout" class="logout"><button type="submit" class="ghost small-btn">Salir</button></form>
     </div>
-    <div class="top-actions">
-      <button type="button" id="btn-refresh">Actualizar snapshot</button>
-      <form method="post" action="/logout"><button type="submit" class="ghost">Salir</button></form>
-    </div>
+    <nav class="modnav" aria-label="Módulos">
+      <a href="#monitoreo" data-view="monitoreo">Monitoreo</a>
+      <a href="#disputas" data-view="disputas">Disputas</a>
+      <a href="#credenciales" data-view="credenciales">Credenciales</a>
+      <span class="soon" title="Próxima ronda">Tiendas</span>
+      <span class="soon" title="Próxima ronda">Catálogo</span>
+      <span class="soon" title="Próxima ronda">Reportes</span>
+      <span class="soon" title="Próxima ronda">Automatizaciones</span>
+      <span class="soon" title="Próxima ronda">Agentes</span>
+    </nav>
   </header>
+
   <p id="banner" class="banner hidden" hidden></p>
 
-  <section>
-    <h2>Cómo leer este panel</h2>
-    <p>Los números salen del último snapshot (hora de Chile, America/Santiago). Los filtros cambian lo que se ve sobre esos datos; no vuelven a consultar las plataformas. Un refresh autenticado sí las consulta en solo lectura y deja un snapshot nuevo. Habilitada no es lo mismo que abierta ahora: un local puede estar activo y aun así aparecer cerrado por horario, pausado o en alta demanda.</p>
-  </section>
+  <main>
+    <!-- ===== Monitoreo ===== -->
+    <div class="view" id="view-monitoreo">
+      <section class="top">
+        <div>
+          <h1>Monitoreo de tiendas</h1>
+          <p id="subtitle" class="muted">Cargando snapshot…</p>
+        </div>
+        <div class="top-actions">
+          <button type="button" id="btn-refresh">Actualizar snapshot</button>
+        </div>
+      </section>
 
-  <section>
-    <h2>Salud de las fuentes</h2>
-    <div id="sources" class="cards"></div>
-  </section>
+      <section>
+        <h2>Salud de las fuentes</h2>
+        <div id="sources" class="cards"></div>
+      </section>
 
-  <section>
-    <h2>Resumen</h2>
-    <div class="filters">
-      <label>Plataforma
-        <select id="flt-plat">
-          <option value="todas">Todas</option>
-          <option value="uber">Uber</option>
-          <option value="pedidosya">PedidosYa</option>
-        </select>
-      </label>
-      <label>Marca
-        <select id="flt-brand">
-          <option value="todas">Todas las marcas</option>
-        </select>
-      </label>
-      <label>Vista
-        <select id="flt-view">
-          <option value="todas">Todas las tiendas</option>
-          <option value="abiertas">Solo abiertas ahora</option>
-          <option value="atencion">Las que piden atención</option>
-        </select>
-      </label>
-      <label class="check"><input type="checkbox" id="flt-hideex" checked> Ocultar locales que deben permanecer cerrados</label>
-      <label>Buscar
-        <input type="search" id="flt-q" placeholder="Nombre del local">
-      </label>
+      <section>
+        <h2>Resumen</h2>
+        <div class="filters">
+          <label>Plataforma
+            <select id="flt-plat">
+              <option value="todas">Todas</option>
+              <option value="uber">Uber</option>
+              <option value="pedidosya">PedidosYa</option>
+            </select>
+          </label>
+          <label>Marca
+            <select id="flt-brand">
+              <option value="todas">Todas las marcas</option>
+            </select>
+          </label>
+          <label>Vista
+            <select id="flt-view">
+              <option value="todas">Todas las tiendas</option>
+              <option value="abiertas">Solo abiertas ahora</option>
+              <option value="atencion">Las que piden atención</option>
+            </select>
+          </label>
+          <label class="check"><input type="checkbox" id="flt-hideex" checked> Ocultar locales que deben permanecer cerrados</label>
+          <label>Buscar
+            <input type="search" id="flt-q" placeholder="Nombre del local">
+          </label>
+        </div>
+        <div id="metrics" class="metrics"></div>
+      </section>
+
+      <section>
+        <h2>Tiendas</h2>
+        <p id="stores-caption" class="muted"></p>
+        <div class="table-wrap"><table id="stores-table"></table></div>
+        <div id="stores-pager" class="pager"></div>
+      </section>
+
+      <section>
+        <h2>Cobros Uber sin disputar (snapshot)</h2>
+        <p id="disp-caption" class="muted"></p>
+        <div id="disp-facts" class="facts"></div>
+        <div class="table-wrap"><table id="disp-table"></table></div>
+        <div id="disp-pager" class="pager"></div>
+        <h3>Mosaicos de reclamo de PedidosYa</h3>
+        <p class="muted">No son disputas pendientes. Un reclamo no se cuenta como disputa sin abrir.</p>
+        <div class="table-wrap"><table id="tiles-table"></table></div>
+      </section>
+
+      <section>
+        <details>
+          <summary>Cómo leer este panel y cobertura</summary>
+          <p>Los números salen del último snapshot (hora de Chile, America/Santiago). Los filtros cambian lo que se ve sobre esos datos; no vuelven a consultar las plataformas. Un refresh autenticado sí las consulta en solo lectura y deja un snapshot nuevo. Habilitada no es lo mismo que abierta ahora: un local puede estar activo y aun así aparecer cerrado por horario, pausado o en alta demanda.</p>
+          <div id="coverage"></div>
+        </details>
+      </section>
     </div>
-    <div id="metrics" class="metrics"></div>
-  </section>
 
-  <section>
-    <h2>Tiendas</h2>
-    <p id="stores-caption" class="muted"></p>
-    <div class="table-wrap"><table id="stores-table"></table></div>
-    <div id="stores-pager" class="pager"></div>
-  </section>
+    <!-- ===== Disputas ===== -->
+    <div class="view" id="view-disputas" hidden>
+      <section class="top">
+        <div>
+          <h1>Disputas e imágenes</h1>
+          <p class="muted">Cobros de Uber, reclamos de PedidosYa y las fotos que la tienda subió con la app delivery, por pedido.</p>
+        </div>
+      </section>
 
-  <section>
-    <h2>Disputas y cobros sin abrir</h2>
-    <p id="disp-caption" class="muted"></p>
-    <div id="disp-facts" class="facts"></div>
-    <div class="table-wrap"><table id="disp-table"></table></div>
-    <div id="disp-pager" class="pager"></div>
-    <h3>Mosaicos de reclamo de PedidosYa</h3>
-    <p class="muted">No son disputas pendientes. Un reclamo no se cuenta como disputa sin abrir.</p>
-    <div class="table-wrap"><table id="tiles-table"></table></div>
-  </section>
+      <section>
+        <div class="tabs" role="tablist">
+          <button type="button" class="tab" data-dtab="uber" role="tab">Uber</button>
+          <button type="button" class="tab" data-dtab="pedidosya" role="tab">PedidosYa</button>
+          <button type="button" class="tab" data-dtab="buscar" role="tab">Buscar fotos de la app</button>
+        </div>
 
-  <section>
-    <h2>Cobertura e integración</h2>
-    <div id="coverage"></div>
-  </section>
+        <div class="dpanel" id="dpanel-uber">
+          <div class="toolbar">
+            <label>Estado
+              <select id="u-status">
+                <option value="pending">Pendientes (cobradas sin disputar)</option>
+                <option value="charged">Cobradas</option>
+                <option value="disputed">Disputadas</option>
+                <option value="accepted">Disputa aceptada</option>
+                <option value="rejected">Disputa rechazada</option>
+              </select>
+            </label>
+            <label>Desde <input type="date" id="u-start"></label>
+            <label>Hasta <input type="date" id="u-end"></label>
+            <label>Buscar <input type="search" id="u-q" placeholder="Tienda o pedido"></label>
+            <button type="button" id="u-live">Consultar Uber ahora</button>
+          </div>
+          <p id="u-state" class="state"></p>
+          <div class="table-wrap"><table id="u-table"></table></div>
+        </div>
+
+        <div class="dpanel" id="dpanel-pedidosya" hidden>
+          <div class="note">
+            <strong>PedidosYa no lista disputas.</strong>
+            Los mosaicos son reclamos o descuentos: un reclamo no es una disputa pendiente y no se cuenta como tal. Para ver un pedido puntual y sus fotos, ábralo por número.
+          </div>
+          <form class="toolbar" id="p-open">
+            <label>Tienda
+              <select id="p-store" required></select>
+            </label>
+            <label>Pedido <input type="text" id="p-order" inputmode="numeric" placeholder="Ej. 2355819567" required></label>
+            <label class="check"><input type="checkbox" id="p-photos" checked> Con fotos</label>
+            <button type="submit">Abrir pedido</button>
+          </form>
+          <div class="toolbar">
+            <label>Desde <input type="date" id="p-start"></label>
+            <label>Hasta <input type="date" id="p-end"></label>
+            <label class="check"><input type="checkbox" id="p-bystore"> Por tienda</label>
+            <button type="button" id="p-live" class="ghost">Consultar reclamos ahora</button>
+          </div>
+          <p id="p-state" class="state"></p>
+          <div class="table-wrap"><table id="p-table"></table></div>
+        </div>
+
+        <div class="dpanel" id="dpanel-buscar" hidden>
+          <p class="muted">Muestra las fotos que la tienda subió con la app delivery para un pedido, aunque el pedido no aparezca en el listado de la plataforma.</p>
+          <form class="toolbar" id="e-form">
+            <label>Agregador
+              <select id="e-agg">
+                <option value="uber">Uber</option>
+                <option value="pedidosya">PedidosYa</option>
+              </select>
+            </label>
+            <label>Número de orden <input type="text" id="e-order" placeholder="Ej. AA7A2" required></label>
+            <button type="submit">Buscar fotos</button>
+          </form>
+          <div id="e-result"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ===== Credenciales ===== -->
+    <div class="view" id="view-credenciales" hidden>
+      <section class="top">
+        <div>
+          <h1>Credenciales</h1>
+          <p class="muted">Estado de cada sesión y reposición cuando caduca. El valor guardado nunca se muestra: solo se reemplaza.</p>
+        </div>
+        <div class="top-actions">
+          <button type="button" id="c-check" class="ghost">Volver a chequear</button>
+        </div>
+      </section>
+      <section>
+        <div id="c-cards" class="cards"></div>
+      </section>
+      <section class="two-col">
+        <form class="panel-card" id="c-uber" autocomplete="off">
+          <h2>Reponer cookie de Uber</h2>
+          <p class="muted small">Pegue el header <code>Cookie</code> de una sesión iniciada en merchants.ubereats.com, o suba el archivo <code>uber_cookie</code>. Se prueba antes de guardar; si falla, la sesión anterior queda intacta.</p>
+          <label>Cookie <input type="password" name="value" autocomplete="off" spellcheck="false"></label>
+          <label>o archivo <input type="file" name="file"></label>
+          <div class="row">
+            <button type="submit">Probar y guardar</button>
+            <button type="button" class="ghost danger" data-delete="uber">Borrar sesión</button>
+          </div>
+          <p class="state" data-result></p>
+        </form>
+        <form class="panel-card" id="c-pedidosya" autocomplete="off">
+          <h2>Reponer tokens de PedidosYa</h2>
+          <p class="muted small">Suba <code>pya_tokens.json</code> (o pegue su contenido). Si el refresh también caducó, hace falta un login OTP en el portal y un archivo nuevo.</p>
+          <label>Contenido <input type="password" name="value" autocomplete="off" spellcheck="false"></label>
+          <label>o archivo <input type="file" name="file" accept=".json,application/json"></label>
+          <div class="row">
+            <button type="submit">Probar y guardar</button>
+            <button type="button" class="ghost danger" data-delete="pedidosya">Borrar sesión</button>
+          </div>
+          <p class="state" data-result></p>
+        </form>
+      </section>
+      <section>
+        <p class="muted small">Rappi queda pendiente hasta tener CLI y credenciales oficiales. La clave de la API de evidencia de la app delivery se configura en el servidor (<code>EVIDENCIA_API_KEY</code>), no desde aquí.</p>
+      </section>
+    </div>
+  </main>
+
+  <!-- ===== Ficha de pedido ===== -->
+  <div class="drawer" id="drawer" hidden>
+    <div class="drawer-backdrop" data-close></div>
+    <aside class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="dr-title">
+      <header class="drawer-head">
+        <div>
+          <p class="muted small" id="dr-kicker"></p>
+          <h2 id="dr-title">Pedido</h2>
+        </div>
+        <button type="button" class="ghost small-btn" data-close aria-label="Cerrar">Cerrar</button>
+      </header>
+      <div id="dr-body" class="drawer-body"></div>
+    </aside>
+  </div>
 
   <script src="/static/app.js"></script>
+  <script src="/static/modules.js"></script>
 </body>
 </html>
