@@ -83,3 +83,7 @@ def allow_login_attempt(ip: str, limit: int = 5, window: float = 900.0) -> bool:
     hits.append(now)
     _login_hits[ip] = hits
     return True
+
+
+def forget_login_attempts(ip: str) -> None:
+    _login_hits.pop(ip, None)

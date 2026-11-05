@@ -22,6 +22,7 @@ from .auth import (
     allow_login_attempt,
     clear_session,
     current_user,
+    forget_login_attempts,
     issue_session,
     require_user,
     verify_credentials,
@@ -345,6 +346,7 @@ def login_submit(request: Request, username: str = Form(...), password: str = Fo
         return HTMLResponse(_login_page("Demasiados intentos. Espere unos minutos."), status_code=429)
     if not verify_credentials(settings, username, password):
         return HTMLResponse(_login_page("Usuario o contraseña incorrectos."), status_code=401)
+    forget_login_attempts(ip)
     response = RedirectResponse("/", status_code=303)
     issue_session(response, settings, settings.panel_user)
     return response
@@ -358,6 +360,7 @@ def api_login(request: Request, username: str = Form(...), password: str = Form(
         raise HTTPException(status_code=429, detail="Demasiados intentos")
     if not verify_credentials(settings, username, password):
         raise HTTPException(status_code=401, detail="Usuario o contraseña incorrectos")
+    forget_login_attempts(ip)
     response = JSONResponse({"ok": True})
     issue_session(response, settings, settings.panel_user)
     return response
