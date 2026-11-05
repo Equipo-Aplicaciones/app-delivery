@@ -26,7 +26,10 @@ from .auth import (
     require_user,
     verify_credentials,
 )
-from .config import Settings, SettingsError, load_settings
+from .config import SettingsError
+from .deps import get_settings
+from .modules import credentials as credentials_module
+from .modules import disputes as disputes_module
 
 log = logging.getLogger("delivery_monitor.panel")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -59,16 +62,8 @@ COVERAGE = {
     ),
 }
 
-_settings: Settings | None = None
 _refresh_lock = threading.Lock()
 _refresh_running = False
-
-
-def get_settings() -> Settings:
-    global _settings
-    if _settings is None:
-        _settings = load_settings()
-    return _settings
 
 
 def _client_ip(request: Request) -> str:
@@ -264,6 +259,12 @@ async def lifespan(app: FastAPI):
     except SettingsError as exc:
         log.error("configuración inválida: %s", exc)
         raise SystemExit(str(exc)) from exc
+    for folder in (settings.media_dir, settings.sessions_dir):
+        try:
+            folder.mkdir(parents=True, exist_ok=True, mode=0o700)
+        except OSError as exc:
+            log.warning("no se pudo crear %s: %s", folder, exc.strerror)
+    credentials_module.ensure_links(settings)
     log.info("panel listo (snapshot=%s, intervalo=%s)", settings.snapshot_path, settings.refresh_interval_minutes)
     stop = asyncio.Event()
     task = None
@@ -281,6 +282,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Monitoreo de delivery", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+app.include_router(credentials_module.router)
+app.include_router(disputes_module.router)
 
 
 @app.exception_handler(SettingsError)

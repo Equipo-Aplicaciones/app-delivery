@@ -34,6 +34,19 @@ def _read_password() -> str:
     return (os.environ.get("PANEL_PASSWORD") or "").strip()
 
 
+DEFAULT_EVIDENCIA_URL = "https://nfryurrhgaeepdwqtswo.supabase.co/functions/v1/evidencia"
+
+
+def _read_evidencia_key() -> str:
+    path = (os.environ.get("EVIDENCIA_API_KEY_FILE") or "").strip()
+    if path:
+        p = Path(path)
+        if p.is_file():
+            return p.read_text(encoding="utf-8").strip()
+        return ""
+    return (os.environ.get("EVIDENCIA_API_KEY") or "").strip()
+
+
 @dataclass(frozen=True)
 class Settings:
     panel_user: str
@@ -45,6 +58,23 @@ class Settings:
     refresh_timeout: int
     refresh_interval_minutes: int
     timezone: str
+    sessions_dir: Path = Path("/sessions")
+    media_dir: Path = Path("/app/media")
+    cli_home: Path = Path.home()
+    evidencia_url: str = DEFAULT_EVIDENCIA_URL
+    evidencia_api_key: str = ""
+    uber_cli: str = "/app/clients/uber/uber.py"
+    uber_cli_cwd: str = "/app/clients/uber"
+    pya_cli: str = "/app/clients/pya/pya.py"
+    pya_cli_cwd: str = "/app/clients/pya"
+
+    @property
+    def data_dir(self) -> Path:
+        return self.snapshot_path.parent
+
+    @property
+    def audit_path(self) -> Path:
+        return self.data_dir / "acciones.jsonl"
 
 
 def load_settings() -> Settings:
@@ -97,4 +127,13 @@ def load_settings() -> Settings:
         refresh_timeout=timeout,
         refresh_interval_minutes=interval,
         timezone=os.environ.get("TZ") or "America/Santiago",
+        sessions_dir=Path(os.environ.get("SESSIONS_DIR") or "/sessions"),
+        media_dir=Path(os.environ.get("MEDIA_DIR") or "/app/media"),
+        cli_home=Path(os.environ.get("CLI_HOME") or os.environ.get("HOME") or str(Path.home())),
+        evidencia_url=(os.environ.get("EVIDENCIA_URL") or DEFAULT_EVIDENCIA_URL).strip().rstrip("/"),
+        evidencia_api_key=_read_evidencia_key(),
+        uber_cli=os.environ.get("UBER_CLI") or "/app/clients/uber/uber.py",
+        uber_cli_cwd=os.environ.get("UBER_CLI_CWD") or "/app/clients/uber",
+        pya_cli=os.environ.get("PYA_CLI") or "/app/clients/pya/pya.py",
+        pya_cli_cwd=os.environ.get("PYA_CLI_CWD") or "/app/clients/pya",
     )

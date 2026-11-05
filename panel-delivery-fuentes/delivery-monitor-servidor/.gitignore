@@ -8,3 +8,11 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .venv/
+media/*
+!media/.gitkeep
+sessions/*.bak
+sessions/*.tmp
+sessions/evidencia_api_key
+data/*.json
+data/*.jsonl
+data/*.tmp
