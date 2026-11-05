@@ -138,6 +138,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .card h3, .panel-card h2 { margin-top: 0; }
 .card p { margin: 0.25rem 0; }
 .metric strong { display: block; font-size: 1.6rem; }
+.fact strong { display: block; font-size: 1.15rem; }
+.fact span { color: var(--muted); font-size: 0.85rem; }
 .card .status { font-weight: 700; }
 .status-ok, .status-configured { color: var(--ok); }
 .status-error, .status-expired { color: var(--bad); }
@@ -255,4 +257,14 @@ details summary { cursor: pointer; font-weight: 600; }
   .kv dt { margin-top: 0.35rem; }
   .gallery { grid-template-columns: repeat(2, 1fr); }
   .metrics, .cards, .facts { grid-template-columns: repeat(2, 1fr); }
+  table.stack thead { display: none; }
+  table.stack, table.stack tbody, table.stack tr, table.stack td { display: block; width: 100%; }
+  table.stack tr { padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--line); }
+  table.stack tbody tr:last-child { border-bottom: 0; }
+  table.stack td { border: 0; padding: 0.15rem 0; display: grid; grid-template-columns: 6.5rem 1fr; gap: 0.5rem; text-align: left; white-space: normal; }
+  table.stack td::before { content: attr(data-label); color: var(--muted); font-size: 0.8rem; }
+  table.stack td:not([data-label])::before, table.stack tr.empty td::before { content: none; }
+  table.stack td:not([data-label]), table.stack tr.empty td { display: block; }
+  table.stack td:last-child:not([data-label]) { margin-top: 0.35rem; }
+  table.stack td button { width: 100%; }
 }

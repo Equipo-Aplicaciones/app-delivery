@@ -40,6 +40,14 @@
     return "$" + Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   }
 
+  const ISO_TS = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})$/;
+  function when(value) {
+    if (!value || !ISO_TS.test(String(value))) return value || "";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    return d.toLocaleString("es-CL", { timeZone: "America/Santiago", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  }
+
   function setState(el, text, kind) {
     el.textContent = text || "";
     el.className = "state" + (kind ? " " + kind : "");
@@ -97,19 +105,23 @@
 
   function table(el, headers, rows, empty) {
     el.innerHTML = "";
+    el.classList.add("stack");
     el.appendChild(h("thead", {}, h("tr", {}, headers.map((t) => h("th", { text: t })))));
     const tb = h("tbody");
-    if (!rows.length) tb.appendChild(h("tr", {}, h("td", { colspan: headers.length, class: "muted", text: empty })));
-    rows.forEach((r) => tb.appendChild(r));
+    if (!rows.length) tb.appendChild(h("tr", { class: "empty" }, h("td", { colspan: headers.length, class: "muted", text: empty })));
+    rows.forEach((r) => {
+      Array.from(r.children).forEach((td, i) => { if (headers[i]) td.setAttribute("data-label", headers[i]); });
+      tb.appendChild(r);
+    });
     el.appendChild(tb);
   }
 
   function sourceLine(data) {
     if (!data) return "";
     const src = data.source === "live" ? "Consulta en vivo" : "Snapshot";
-    const when = data.fetched_at ? " · " + data.fetched_at + " (hora de Chile)" : "";
+    const at = data.fetched_at ? " · " + when(data.fetched_at) + " (hora de Chile)" : "";
     const win = data.window && (data.window.label || (data.window.start ? data.window.start + " a " + data.window.end : ""));
-    return src + when + (win ? " · Ventana " + win : "");
+    return src + at + (win ? " · Ventana " + win : "");
   }
 
   function errorKind(data) {
@@ -336,7 +348,7 @@
       });
       cap.appendChild(toggle);
     }
-    if (opts.app && item.created_at) cap.appendChild(h("span", { class: "muted small", text: item.created_at }));
+    if (opts.app && item.created_at) cap.appendChild(h("span", { class: "muted small", text: "Subida " + when(item.created_at) }));
     fig.appendChild(cap);
     return fig;
   }
@@ -387,7 +399,7 @@
         ["Estado", charge.state || meta.dispute_status],
         ["Comentario del cliente", meta.customer_comment],
         ["Explicación de Uber", meta.ai_explanation],
-        ["Descargado", meta.fetched_at],
+        ["Descargado", when(meta.fetched_at)],
       ]),
       fetchNote(data.platform_fetch),
       h("div", { class: "row" }, h("button", { type: "button", class: "ghost small-btn", onclick: () => openUber(orderId, row, true) }, "Volver a descargar desde Uber"))
@@ -551,7 +563,7 @@
           ),
           h("p", { class: "status status-" + s.status, text: STATUS_TEXT[s.status] || s.status }),
           h("p", { class: "muted small", text: s.detail || "" }),
-          h("p", { class: "muted small", text: s.checked_at ? "Chequeado " + s.checked_at : "Sin chequeo" })
+          h("p", { class: "muted small", text: s.checked_at ? "Chequeado " + when(s.checked_at) : "Sin chequeo" })
         ));
       });
     } catch (err) {
