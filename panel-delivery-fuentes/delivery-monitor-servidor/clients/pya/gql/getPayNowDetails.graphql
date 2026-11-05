@@ -1,0 +1,15 @@
+query getPayNowDetails($params: GetPayNowDetailsRequest!) {
+  finances {
+    getPayNowDetails(input: $params) {
+      bankDetails {
+        bankId
+        bankName
+        accountNumber
+        email
+        currencyText
+        companyName
+      }
+      qrCodeLinks
+    }
+  }
+}

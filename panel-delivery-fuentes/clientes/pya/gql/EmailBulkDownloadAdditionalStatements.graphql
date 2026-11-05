@@ -1,0 +1,7 @@
+query EmailBulkDownloadAdditionalStatements($params: EmailBulkDownloadAdditionalStatementsRequest!) {
+  finances {
+    emailBulkDownloadAdditionalStatements(input: $params) {
+      accepted
+    }
+  }
+}

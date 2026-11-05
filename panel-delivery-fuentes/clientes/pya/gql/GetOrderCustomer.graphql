@@ -1,0 +1,11 @@
+query GetOrderCustomer($orderCustomerParams: OrderCustomerReq!) {
+  orders {
+    orderCustomer(input: $orderCustomerParams) {
+      customer {
+        name
+        phone
+        address
+      }
+    }
+  }
+}

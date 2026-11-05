@@ -1,0 +1,7 @@
+query RequestInvoice($params: DownloadInvoiceRequest!) {
+  finances {
+    downloadInvoice(input: $params) {
+      downloadUrl
+    }
+  }
+}

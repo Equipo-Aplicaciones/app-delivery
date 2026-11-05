@@ -1,0 +1,10 @@
+.env
+data/snapshot.json
+data/snapshot.json.tmp
+sessions/uber_cookie
+sessions/pya_tokens.json
+sessions/panel_password
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/

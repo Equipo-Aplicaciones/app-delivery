@@ -1,0 +1,11 @@
+query OrdersConfig($params: ConfigRequest!) {
+  config {
+    config(input: $params) {
+      pluginConfigs {
+        orders {
+          billableFilterEnabled
+        }
+      }
+    }
+  }
+}

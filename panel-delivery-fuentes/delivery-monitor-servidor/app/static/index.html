@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Monitoreo de tiendas y disputas</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="top">
+    <div>
+      <h1>Monitoreo de tiendas y disputas</h1>
+      <p id="subtitle" class="muted">Cargando snapshot…</p>
+    </div>
+    <div class="top-actions">
+      <button type="button" id="btn-refresh">Actualizar snapshot</button>
+      <form method="post" action="/logout"><button type="submit" class="ghost">Salir</button></form>
+    </div>
+  </header>
+  <p id="banner" class="banner hidden" hidden></p>
+
+  <section>
+    <h2>Cómo leer este panel</h2>
+    <p>Los números salen del último snapshot (hora de Chile, America/Santiago). Los filtros cambian lo que se ve sobre esos datos; no vuelven a consultar las plataformas. Un refresh autenticado sí las consulta en solo lectura y deja un snapshot nuevo. Habilitada no es lo mismo que abierta ahora: un local puede estar activo y aun así aparecer cerrado por horario, pausado o en alta demanda.</p>
+  </section>
+
+  <section>
+    <h2>Salud de las fuentes</h2>
+    <div id="sources" class="cards"></div>
+  </section>
+
+  <section>
+    <h2>Resumen</h2>
+    <div class="filters">
+      <label>Plataforma
+        <select id="flt-plat">
+          <option value="todas">Todas</option>
+          <option value="uber">Uber</option>
+          <option value="pedidosya">PedidosYa</option>
+        </select>
+      </label>
+      <label>Marca
+        <select id="flt-brand">
+          <option value="todas">Todas las marcas</option>
+        </select>
+      </label>
+      <label>Vista
+        <select id="flt-view">
+          <option value="todas">Todas las tiendas</option>
+          <option value="abiertas">Solo abiertas ahora</option>
+          <option value="atencion">Las que piden atención</option>
+        </select>
+      </label>
+      <label class="check"><input type="checkbox" id="flt-hideex" checked> Ocultar locales que deben permanecer cerrados</label>
+      <label>Buscar
+        <input type="search" id="flt-q" placeholder="Nombre del local">
+      </label>
+    </div>
+    <div id="metrics" class="metrics"></div>
+  </section>
+
+  <section>
+    <h2>Tiendas</h2>
+    <p id="stores-caption" class="muted"></p>
+    <div class="table-wrap"><table id="stores-table"></table></div>
+    <div id="stores-pager" class="pager"></div>
+  </section>
+
+  <section>
+    <h2>Disputas y cobros sin abrir</h2>
+    <p id="disp-caption" class="muted"></p>
+    <div id="disp-facts" class="facts"></div>
+    <div class="table-wrap"><table id="disp-table"></table></div>
+    <div id="disp-pager" class="pager"></div>
+    <h3>Mosaicos de reclamo de PedidosYa</h3>
+    <p class="muted">No son disputas pendientes. Un reclamo no se cuenta como disputa sin abrir.</p>
+    <div class="table-wrap"><table id="tiles-table"></table></div>
+  </section>
+
+  <section>
+    <h2>Cobertura e integración</h2>
+    <div id="coverage"></div>
+  </section>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

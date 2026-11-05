@@ -1,0 +1,7 @@
+query IsUserEligibleForLoan($params: IsUserEligibleForLoanRequest!) {
+  finances {
+    isUserEligibleForLoan(input: $params) {
+      isEligible
+    }
+  }
+}

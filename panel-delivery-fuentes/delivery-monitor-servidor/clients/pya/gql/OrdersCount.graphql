@@ -1,0 +1,13 @@
+query OrdersCount($params: OrdersCountReq!) {
+  orders {
+    ordersExport {
+      limits {
+        ordersAmountDownload
+        ordersAmountEmail
+      }
+    }
+    ordersCount(input: $params) {
+      amount
+    }
+  }
+}

@@ -1,0 +1,96 @@
+query getPayoutEarningsSummary($params: GetPayoutEarningsSummaryRequest!, $withBreakdown: Boolean = false) {
+  finances {
+    getPayoutEarningsSummary(input: $params) {
+      currency
+      totalGrossSales
+      totalCommissions
+      totalNetPayout
+      ordersCount
+      breakdown @include(if: $withBreakdown) {
+        grossSales
+        additionalSales {
+          total
+          deliveryFees
+          packagingFees
+          movFees
+          foodCostReimbursement
+          tips
+          additionalEarnings {
+            reason
+            amount
+          }
+        }
+        discounts {
+          total
+          totalDiscounts
+          discountsByBrand
+          discountsBySelf
+        }
+        vouchers {
+          vouchersByBrand
+          vouchersBySelf
+        }
+        customerRefundCharges {
+          total
+          charges {
+            reason
+            amount
+          }
+        }
+        marketingFees {
+          total
+          cpcFee
+          jokerFee
+          marketingFee {
+            type
+            amount
+          }
+        }
+        commissions {
+          total
+          commissionList {
+            type
+            amount
+          }
+        }
+        customerFees {
+          reason
+          amount
+        }
+        taxCharges {
+          total
+          taxChargeList {
+            reason
+            amount
+          }
+        }
+        additionalFees {
+          total
+          platformFeesCollected
+          taxCharge
+          additionalCharges {
+            reason
+            amount
+          }
+          paymentFee
+        }
+        owedToPlatform
+        totalEarnings
+        cashCollected
+        paymentFeeGross
+        paymentFeeNet
+        loans {
+          total
+          loans {
+            reason
+            amount
+          }
+        }
+        waitTimeFee {
+          totalCharge
+        }
+        currentBalance
+      }
+    }
+  }
+}

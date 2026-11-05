@@ -1,0 +1,7 @@
+query EmailBulkDownloadPayouts($params: EmailBulkDownloadPayoutsRequest!) {
+  finances {
+    emailBulkDownloadPayouts(input: $params) {
+      accepted
+    }
+  }
+}

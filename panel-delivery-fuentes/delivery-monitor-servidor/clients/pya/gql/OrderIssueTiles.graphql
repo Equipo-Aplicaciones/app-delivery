@@ -1,0 +1,13 @@
+query OrderIssueTiles($params: OrderIssueTilesRequest!) {
+  reports {
+    orderIssueTiles(input: $params) {
+      tiles {
+        type
+        ordersCount
+        amount
+        amountType
+        ordersAmountCount
+      }
+    }
+  }
+}

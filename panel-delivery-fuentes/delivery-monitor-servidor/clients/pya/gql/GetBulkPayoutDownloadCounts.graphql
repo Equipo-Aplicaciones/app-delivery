@@ -1,0 +1,17 @@
+query GetBulkPayoutDownloadCounts($params: GetBulkPayoutDownloadCountsRequest!) {
+  finances {
+    getBulkPayoutDownloadCounts(input: $params) {
+      fileCounts {
+        totalFilesCount
+        fileCountsDetails {
+          filesCount
+          fileFormat
+        }
+      }
+      fileLimits {
+        directDownloadLimit
+        emailDownloadLimit
+      }
+    }
+  }
+}

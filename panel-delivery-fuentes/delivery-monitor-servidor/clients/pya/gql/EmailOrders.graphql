@@ -1,0 +1,9 @@
+query EmailOrders($params: EmailOrdersExportReq!) {
+  orders {
+    ordersExport {
+      emailOrdersExport(input: $params) {
+        accepted
+      }
+    }
+  }
+}

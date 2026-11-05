@@ -1,0 +1,8 @@
+mutation UploadReceipt($params: UploadOrderReceiptMutationReq!) {
+  orders {
+    uploadOrderReceipt(input: $params) {
+      path
+      uploadedAt
+    }
+  }
+}

@@ -1,0 +1,7 @@
+query RequestPayoutEarningsSummaryExport($params: GetPayoutEarningsSummaryRequest!) {
+  finances {
+    payoutEarningsSummaryExport(input: $params) {
+      downloadUrl
+    }
+  }
+}
