@@ -19,9 +19,11 @@ Zona horaria: `America/Santiago`.
 - Reverse proxy Caddy con TLS. El backend no publica puertos al exterior.
 - Módulo **Disputas** (pestañas Uber, PedidosYa y búsqueda de fotos de la app): ficha por pedido con fotos del cliente, evidencia de la tienda, fotos de la app delivery y preparación de disputa Uber en dry-run.
 - Módulo **Credenciales**: semáforo por fuente y reposición de cookie/tokens con prueba previa.
+- Módulos **Tiendas**, **Catálogo**, **Reportes**, **Automatizaciones** y **Agentes** (detalle abajo).
 
-No hay endpoints que pausen, activen ni agoten productos. El envío real de una disputa Uber está
-apagado (`ALLOW_UBER_DISPUTE_SUBMIT=false`) hasta que el dueño autorice una prueba en vivo.
+Toda escritura (prender/pausar tiendas, agotar/reponer, activar menú) corre primero en dry-run y solo
+se envía con `confirm=true`; el navegador pide una segunda confirmación. El envío real de una disputa
+Uber está apagado (`ALLOW_UBER_DISPUTE_SUBMIT=false`) hasta que el dueño autorice una prueba en vivo.
 
 ## Disputas e imágenes
 
@@ -43,6 +45,55 @@ host que `EVIDENCIA_URL`. Cada intento de escritura queda en `data/acciones.json
 La clave de evidencia se configura en el servidor: `EVIDENCIA_API_KEY` o `EVIDENCIA_API_KEY_FILE`
 (por ejemplo `/sessions/evidencia_api_key`, modo 600). `EVIDENCIA_URL` por defecto apunta al proyecto
 de la app delivery.
+
+## Tiendas y catálogo
+
+| Ruta | Qué hace |
+|---|---|
+| `GET /api/stores` | Tiendas del snapshot (`platform`, `brand`, `status`, `open_now`, `excluded`, `q`). |
+| `GET /api/stores/meta/options` | Duraciones y motivos válidos de pausa por plataforma. |
+| `POST /api/stores/activate` | `{platform, store_ids \| names, confirm}` → `uber.py\|pya.py activate`. |
+| `POST /api/stores/pause` | Uber: `duration` (10, 20, 30, 60, `rest_of_day`) y `reason`. PedidosYa: `reason` y `minutes` opcional. |
+| `GET /api/catalog/soldout?platform=…&store=…` | `soldout-report --json`. |
+| `POST /api/catalog/soldout` / `instock` | `{platform, item, match: "contains", until, names, confirm}`. Sin tiendas aplica a todas. |
+| `POST /api/catalog/activate-menu` | Activa ítems pausados respetando las exclusiones del CLI y `extra_excludes`. |
+
+Sin `confirm: true` (booleano) se pasa `--dry-run`; con él, `--yes`. Un solo comando de escritura corre
+a la vez. La respuesta trae `verified: false`: actualice el snapshot para ver el estado real.
+
+## Reportes
+
+`GET /api/reports` lista el catálogo (ventas, agotados, horarios, reseñas, ratings, reclamos, pedidos,
+pagos, facturas y los 18 reportes VOS de PedidosYa, más la exportación del snapshot).
+`POST /api/reports/run` `{report, format: json|csv, start, end, store, status, days}` crea un job;
+el archivo queda en `data/exports/` (modo 600) y se descarga con sesión en
+`GET /api/reports/jobs/{id}/download`. Las fechas van en `AAAA-MM-DD`.
+
+## Automatizaciones
+
+`/api/automations` guarda jobs `refresh_snapshot` o `report` con un cron de 5 campos en hora de Chile
+(`0 8 * * 1-5`). El programador corre dentro del panel (`AUTOMATIONS_SCHEDULER=true`), con al menos
+15 minutos entre corridas de un mismo job; «Ejecutar ahora» usa `POST /api/automations/{id}/run`.
+Los tipos de escritura (`stores_pause`, `catalog_soldout`, …) se rechazan con
+`ALLOW_SCHEDULED_WRITES=false` y no están cableados en v1.
+
+## Agentes (API keys)
+
+`POST /api/agents` `{name, scopes}` devuelve la clave `tdk_…` **una sola vez**; el servidor guarda solo
+su SHA-256 en `data/agents.json`. El agente llama con `Authorization: Bearer tdk_…` y cada ruta exige un
+scope:
+
+| Scope | Rutas |
+|---|---|
+| `snapshot.read` | `/api/snapshot`, `/api/health`, `/api/refresh`, `GET /api/stores` |
+| `reports.read` | `/api/reports/*`, `GET /api/catalog/soldout` |
+| `disputes.read` / `disputes.write` | lectura de disputas, pedidos y evidencia / envío y marcado de fotos |
+| `stores.write` / `catalog.write` | escrituras de Tiendas / Catálogo (con las mismas reglas de dry-run) |
+| `automations.write` | `/api/automations` |
+
+`/api/credentials` y `/api/agents` quedan solo para el operador humano (`credentials.write` y
+`agents.admin` no se entregan). Límite por clave: `AGENT_RATE_LIMIT_PER_MIN` (120). Revocar con
+`DELETE /api/agents/{id}`; la clave deja de servir de inmediato.
 
 ## Credenciales
 
@@ -209,8 +260,9 @@ app/                  FastAPI + frontend estático
 delivery_monitor/     adaptadores y snapshot
 clients/uber/         copia aislada de uber.py + api_client.py
 clients/pya/          copia aislada de pya.py + api_client.py + gql/
-app/modules/          credenciales, disputas, media y proxy de evidencia
-data/                 snapshot, índice de pedidos Uber y auditoría (no van a git)
+app/modules/          credenciales, disputas, media, evidencia, tiendas, catálogo, reportes,
+                      automatizaciones y agentes
+data/                 snapshot, auditoría, jobs, exports, automatizaciones y agentes (no van a git)
 media/                fotos de reclamo por plataforma/pedido (no van a git)
 sessions/             secretos montados por el dueño (no vienen en el zip)
 tests/

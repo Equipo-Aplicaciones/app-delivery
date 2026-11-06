@@ -9,3 +9,9 @@ __pycache__
 *.pyc
 *.md
 !README.md
+data/*.json
+data/*.jsonl
+data/exports
+media/*
+sessions/*
+.venv

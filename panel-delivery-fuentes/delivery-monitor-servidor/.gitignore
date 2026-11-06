@@ -16,3 +16,4 @@ sessions/evidencia_api_key
 data/*.json
 data/*.jsonl
 data/*.tmp
+data/exports/
