@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "app-delivery",
+    "slug": "app-delivery",
+    "version": "1.0.1",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "appdelivery",
+    "android": {
+      "package": "com.wika.appdelivery",
+      "versionCode": 2,
+      "permissions": ["android.permission.CAMERA"]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "La app usa la cámara para fotografiar el pedido de la disputa."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "1.9.25",
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 34,
+            "minSdkVersion": 24,
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
+    ]
+  }
+}
