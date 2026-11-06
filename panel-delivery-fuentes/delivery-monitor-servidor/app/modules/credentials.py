@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import json
 import logging
 import os
@@ -17,8 +18,8 @@ from delivery_monitor.adapters.runner import CliError, run_cli
 from delivery_monitor.parseutil import iso_chile
 from delivery_monitor.sanitize import looks_like_auth_failure, sanitize
 
-from ..config import Settings
-from ..deps import audit, get_settings, operator
+from ..config import EVIDENCIA_KEY_FILENAME, Settings
+from ..deps import audit, get_settings, operator, reset_settings
 from . import evidence
 
 log = logging.getLogger("delivery_monitor.credentials")
@@ -146,7 +147,7 @@ def _evidence_status(settings: Settings, force: bool) -> dict:
     with _cache_lock:
         cached = _cache.get("evidencia")
     if not settings.evidencia_api_key:
-        entry = _store_status("evidencia", "missing", "Falta EVIDENCIA_API_KEY en el servidor (se configura por entorno, no desde el panel)")
+        entry = _store_status("evidencia", "missing", "Falta la clave de la API de evidencia: cárguela aquí o en EVIDENCIA_API_KEY")
     elif cached and not force and cached["status"] != "missing" and time.monotonic() - cached["_mono"] < CACHE_TTL:
         entry = cached
     else:
@@ -281,6 +282,44 @@ async def put_uber(request: Request, value: str | None = Form(None), file: Uploa
 @router.put("/pedidosya")
 async def put_pedidosya(request: Request, value: str | None = Form(None), file: UploadFile | None = File(None)):
     return await _put(request, "pedidosya", value, file)
+
+
+def _evidence_key_locked() -> bool:
+    return bool((os.environ.get("EVIDENCIA_API_KEY") or os.environ.get("EVIDENCIA_API_KEY_FILE") or "").strip())
+
+
+def install_evidence_key(settings: Settings, key: str) -> tuple[str, str]:
+    """Prueba la clave contra la Edge Function y solo entonces la guarda en sessions/ (0600)."""
+    status, detail = evidence.health(dataclasses.replace(settings, evidencia_api_key=key))
+    if status != "configured":
+        return status, detail
+    with _write_lock:
+        settings.sessions_dir.mkdir(parents=True, exist_ok=True)
+        final = settings.sessions_dir / EVIDENCIA_KEY_FILENAME
+        tmp = final.with_name(final.name + ".tmp")
+        _write_private(tmp, key)
+        os.replace(tmp, final)
+    reset_settings()
+    evidence._cache.clear()
+    _store_status("evidencia", status, detail)
+    return status, detail
+
+
+@router.put("/evidencia")
+async def put_evidencia(request: Request, value: str | None = Form(None), file: UploadFile | None = File(None)):
+    user = operator(request)
+    if _evidence_key_locked():
+        raise HTTPException(status_code=409, detail="La clave de evidencia está fijada por entorno (EVIDENCIA_API_KEY); cámbiela en el servidor")
+    key = await _read_value(value, file)
+    if len(key) > 512 or any(ch.isspace() for ch in key):
+        raise HTTPException(status_code=400, detail="La clave debe ser una sola línea sin espacios")
+    status, detail = await asyncio.to_thread(install_evidence_key, get_settings(), key)
+    ok = status == "configured"
+    audit(user, "credentials.put.evidencia", "evidencia", False, "ok" if ok else status, detail)
+    if not ok:
+        raise HTTPException(status_code=422, detail=f"No se guardó: {detail}. La clave anterior quedó intacta.")
+    return {"ok": True, "source": "evidencia", "status": status, "checked_at": iso_chile(),
+            "detail": detail, "length": _length_hint(len(key))}
 
 
 @router.put("/rappi")
