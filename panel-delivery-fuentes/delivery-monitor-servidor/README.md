@@ -100,7 +100,41 @@ scope:
 - `GET /api/credentials/status` (`?check=true` fuerza el chequeo): `configured`, `missing`, `expired`, `unknown` o `pending` para Uber, PedidosYa, Rappi y la API de evidencia. El chequeo es una lectura mínima (lista de tiendas) y se guarda 10 minutos.
 - `PUT /api/credentials/uber` y `/pedidosya` (campo `value` o archivo `file`, máx. 64 KB): prueba el valor en un HOME aislado y solo si pasa reemplaza `sessions/…` de forma atómica (queda un `.bak`). Si falla, 422 y la sesión anterior sigue intacta. La respuesta nunca devuelve el valor.
 - `DELETE /api/credentials/{fuente}`: primero dry-run; `?confirm=true` borra.
+- `PUT /api/credentials/evidencia` (campo `value`): prueba la clave contra la API de evidencia y solo
+  si responde la guarda en `sessions/evidencia_api_key` (0600). 409 si la clave viene fijada por
+  `EVIDENCIA_API_KEY` o `EVIDENCIA_API_KEY_FILE`. Nunca se devuelve.
 - Rappi: 501 hasta tener CLI y credenciales oficiales.
+
+## Panel exclusivo de disputas
+
+App aparte (`app.disputas_app:app`) con solo dos secciones: Disputas y Credenciales. Menú
+hamburguesa con Uber Eats y PedidosYa; el panel superior cambia según el agregador.
+
+```bash
+PANEL_AUTH=false uvicorn app.disputas_app:app --host 127.0.0.1 --port 8002
+```
+
+- `PANEL_AUTH=false` lo deja **sin inicio de sesión** (por defecto `true`, con el mismo login
+  del panel principal). Sin login, cualquiera con la URL ve fotos de clientes y puede
+  reemplazar credenciales: úselo solo detrás de una red privada, Cloudflare Access o similar.
+  El panel principal (`app.main`) sigue exigiendo login salvo que se exporte esa variable.
+- Filtros: pendiente, abierta, cerrada ganada y cerrada perdida.
+  - Uber: el estado sale del tag de Uber (`ISSUE_CHARGED` = pendiente, `DISPUTE_*` en curso =
+    abierta, `DISPUTE_ACCEPTED` = ganada, `DISPUTE_DENIED`/`REJECTED` = perdida).
+  - PedidosYa no tiene disputas por API: los pedidos con problemas salen de `orders --issues`
+    y el estado se lleva en un registro local (`data/disputas_registro.json`).
+- Estadísticas: Uber muestra conteo y monto por estado, tasa de éxito y contadores de Uber;
+  PedidosYa muestra los indicadores de «Problemas de pedidos».
+- «Actualizar» (`POST /api/panel/refresh`) corre en segundo plano (hasta 30 días) y se consulta
+  con `GET /api/panel/refresh`; el resultado queda en `data/disputas_cache.json`.
+- «Buscar imagen manual»: con el número de pedido trae las fotos de la app delivery (API de
+  evidencia) y, si se pide, las de la plataforma. Con las fotos elegidas arma el request:
+  - Uber: dry-run de `uber.py dispute` (máx. 3 fotos); el envío real sigue tras
+    `ALLOW_UBER_DISPUTE_SUBMIT`.
+  - PedidosYa: paquete con el texto para pegar en el portal de socios; se marca enviada,
+    ganada o perdida a mano.
+- Si PedidosYa bloquea el listado por pedido (anti-bots, HTTP 403), los indicadores siguen y
+  los pedidos se pueden abrir a mano por número.
 
 Al arrancar, el panel enlaza `~/.uber_cookie` y `~/.pya_tokens.json` del usuario de los CLI
 (`CLI_HOME`) a `SESSIONS_DIR`, sin pisar archivos propios.

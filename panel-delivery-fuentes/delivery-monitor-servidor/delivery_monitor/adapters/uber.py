@@ -76,17 +76,30 @@ def normalize_store(row: dict) -> dict:
     }
 
 
+def dispute_outcome(tag: str) -> str:
+    """orderTag de Uber → pendiente | abierta | ganada | perdida.
+
+    Uber marca las disputas en revisión como DISPUTE_ASSIGNED_TO_AGENT dentro del filtro de cobros, y
+    las rechazadas como DISPUTE_DENIED (no DISPUTE_REJECTED).
+    """
+    tag = (tag or "").upper()
+    if "DISPUTE_ACCEPTED" in tag:
+        return "ganada"
+    if "DISPUTE_DENIED" in tag or "DISPUTE_REJECTED" in tag:
+        return "perdida"
+    if "DISPUTE" in tag:
+        return "abierta"
+    return "pendiente"
+
+
 def normalize_dispute(row: dict, window: dict) -> dict:
     name = str(row.get("store") or "")
     amount = parse_clp(row.get("chargeback"))
     if amount is None:
         amount = parse_clp(row.get("possible_chargeback"))
     tag = str(row.get("tag") or "")
-    state = "pendiente"
-    if "DISPUTE_ACCEPTED" in tag or "DISPUTE_REJECTED" in tag:
-        state = "resuelta"
-    elif "DISPUTED" in tag or "DISPUTE_IN_PROGRESS" in tag:
-        state = "iniciada"
+    outcome = dispute_outcome(tag)
+    state = {"ganada": "resuelta", "perdida": "resuelta", "abierta": "iniciada"}.get(outcome, "pendiente")
     return {
         "platform": "uber",
         "store_name": name,

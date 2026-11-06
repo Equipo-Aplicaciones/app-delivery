@@ -37,14 +37,29 @@ def _read_password() -> str:
 DEFAULT_EVIDENCIA_URL = "https://nfryurrhgaeepdwqtswo.supabase.co/functions/v1/evidencia"
 
 
-def _read_evidencia_key() -> str:
+EVIDENCIA_KEY_FILENAME = "evidencia_api_key"
+
+
+def _read_evidencia_key(sessions_dir: Path) -> str:
     path = (os.environ.get("EVIDENCIA_API_KEY_FILE") or "").strip()
     if path:
         p = Path(path)
         if p.is_file():
             return p.read_text(encoding="utf-8").strip()
         return ""
-    return (os.environ.get("EVIDENCIA_API_KEY") or "").strip()
+    value = (os.environ.get("EVIDENCIA_API_KEY") or "").strip()
+    if value:
+        return value
+    stored = sessions_dir / EVIDENCIA_KEY_FILENAME
+    try:
+        return stored.read_text(encoding="utf-8").strip() if stored.is_file() else ""
+    except OSError:
+        return ""
+
+
+def auth_enabled() -> bool:
+    """PANEL_AUTH=false deja el panel sin inicio de sesión (solo para redes de confianza o QA)."""
+    return (os.environ.get("PANEL_AUTH") or "true").strip().lower() not in {"0", "false", "no", "off"}
 
 
 @dataclass(frozen=True)
@@ -67,6 +82,7 @@ class Settings:
     uber_cli_cwd: str = "/app/clients/uber"
     pya_cli: str = "/app/clients/pya/pya.py"
     pya_cli_cwd: str = "/app/clients/pya"
+    auth_required: bool = True
 
     @property
     def data_dir(self) -> Path:
@@ -96,6 +112,12 @@ def load_settings() -> Settings:
     except ValueError as exc:
         raise SettingsError("REFRESH_INTERVAL_MINUTES debe ser un entero") from exc
 
+    auth_required = auth_enabled()
+    if not auth_required:
+        user = user or "sin-login"
+        password = password if len(password) >= 12 and password.lower() not in WEAK_PASSWORDS else "login-deshabilitado-" + os.urandom(8).hex()
+        if secret in WEAK_SECRETS or len(secret) < 32:
+            secret = os.urandom(32).hex()
     if not user:
         raise SettingsError("PANEL_USER es obligatorio (sin valor por defecto)")
     if password.lower() in WEAK_PASSWORDS or password.lower() == user.lower():
@@ -117,6 +139,7 @@ def load_settings() -> Settings:
         raise SettingsError("Si habilita el intervalo, REFRESH_INTERVAL_MINUTES debe ser 0 (apagado) o al menos 15")
 
     snapshot = Path(os.environ.get("SNAPSHOT_PATH") or "/app/data/snapshot.json")
+    sessions_dir = Path(os.environ.get("SESSIONS_DIR") or "/sessions")
     return Settings(
         panel_user=user,
         panel_password=password,
@@ -127,13 +150,14 @@ def load_settings() -> Settings:
         refresh_timeout=timeout,
         refresh_interval_minutes=interval,
         timezone=os.environ.get("TZ") or "America/Santiago",
-        sessions_dir=Path(os.environ.get("SESSIONS_DIR") or "/sessions"),
+        sessions_dir=sessions_dir,
         media_dir=Path(os.environ.get("MEDIA_DIR") or "/app/media"),
         cli_home=Path(os.environ.get("CLI_HOME") or os.environ.get("HOME") or str(Path.home())),
         evidencia_url=(os.environ.get("EVIDENCIA_URL") or DEFAULT_EVIDENCIA_URL).strip().rstrip("/"),
-        evidencia_api_key=_read_evidencia_key(),
+        evidencia_api_key=_read_evidencia_key(sessions_dir),
         uber_cli=os.environ.get("UBER_CLI") or "/app/clients/uber/uber.py",
         uber_cli_cwd=os.environ.get("UBER_CLI_CWD") or "/app/clients/uber",
         pya_cli=os.environ.get("PYA_CLI") or "/app/clients/pya/pya.py",
         pya_cli_cwd=os.environ.get("PYA_CLI_CWD") or "/app/clients/pya",
+        auth_required=auth_required,
     )

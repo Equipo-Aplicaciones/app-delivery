@@ -23,8 +23,8 @@ _cache: dict[tuple[str, str, str], tuple[str, float]] = {}
 _cache_lock = threading.Lock()
 
 NOT_CONFIGURED = (
-    "Evidencia sin configurar: falta EVIDENCIA_API_KEY en el servidor. "
-    "Las fotos de la app delivery no se consultaron."
+    "Evidencia sin configurar: falta la clave de la API de evidencia "
+    "(cárguela en Credenciales o en EVIDENCIA_API_KEY). Las fotos de la app delivery no se consultaron."
 )
 
 

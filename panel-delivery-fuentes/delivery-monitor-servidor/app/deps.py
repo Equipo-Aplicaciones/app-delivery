@@ -60,6 +60,8 @@ def required_scope(request: Request) -> str | None:
 
 def operator(request: Request) -> str:
     """Operador por cookie de sesión o agente por `Authorization: Bearer tdk_…` con el scope de la ruta."""
+    if not get_settings().auth_required:
+        return "sin-login"
     auth = request.headers.get("authorization") or ""
     if auth.lower().startswith("bearer ") and not request.cookies.get("dm_session"):
         from .modules import agents
