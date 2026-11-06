@@ -29,7 +29,42 @@ def reset_settings() -> None:
     _settings = None
 
 
+_SCOPE_RULES: tuple[tuple[str, str, str | None], ...] = (
+    ("/api/agents", "*", None),
+    ("/api/credentials", "*", None),
+    ("/api/media/", "PATCH", "disputes.write"),
+    ("/api/disputes/", "POST", "disputes.write"),
+    ("/api/disputes", "GET", "disputes.read"),
+    ("/api/orders/", "GET", "disputes.read"),
+    ("/api/evidence/", "GET", "disputes.read"),
+    ("/api/stores", "GET", "snapshot.read"),
+    ("/api/stores", "POST", "stores.write"),
+    ("/api/catalog", "GET", "reports.read"),
+    ("/api/catalog", "POST", "catalog.write"),
+    ("/api/reports", "*", "reports.read"),
+    ("/api/automations", "*", "automations.write"),
+    ("/api/snapshot", "GET", "snapshot.read"),
+    ("/api/health", "GET", "snapshot.read"),
+    ("/api/refresh", "POST", "snapshot.read"),
+)
+
+
+def required_scope(request: Request) -> str | None:
+    """Scope que necesita un agente para esta ruta. None = solo operador humano."""
+    path, method = request.url.path, request.method.upper()
+    for prefix, rule_method, scope in _SCOPE_RULES:
+        if path.startswith(prefix) and rule_method in ("*", method):
+            return scope
+    return None
+
+
 def operator(request: Request) -> str:
+    """Operador por cookie de sesión o agente por `Authorization: Bearer tdk_…` con el scope de la ruta."""
+    auth = request.headers.get("authorization") or ""
+    if auth.lower().startswith("bearer ") and not request.cookies.get("dm_session"):
+        from .modules import agents
+
+        return agents.authenticate(auth[7:].strip(), required_scope(request))
     return require_user(request, get_settings())
 
 

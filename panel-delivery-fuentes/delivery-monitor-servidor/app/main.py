@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -24,13 +25,18 @@ from .auth import (
     current_user,
     forget_login_attempts,
     issue_session,
-    require_user,
     verify_credentials,
 )
 from .config import SettingsError
-from .deps import get_settings
+from .deps import get_settings, operator
 from .modules import credentials as credentials_module
 from .modules import disputes as disputes_module
+from .modules import stores as stores_module
+from .modules import catalog as catalog_module
+from .modules import reports as reports_module
+from .modules import automations as automations_module
+from .modules import agents as agents_module
+from .modules import jobs as jobs_module
 
 log = logging.getLogger("delivery_monitor.panel")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -266,25 +272,35 @@ async def lifespan(app: FastAPI):
         except OSError as exc:
             log.warning("no se pudo crear %s: %s", folder, exc.strerror)
     credentials_module.ensure_links(settings)
+    jobs_module.exports_dir(settings)
     log.info("panel listo (snapshot=%s, intervalo=%s)", settings.snapshot_path, settings.refresh_interval_minutes)
     stop = asyncio.Event()
     task = None
     if settings.refresh_interval_minutes >= 15:
         task = asyncio.create_task(_interval_loop(stop, settings.refresh_interval_minutes))
+    scheduler = None
+    if (os.environ.get("AUTOMATIONS_SCHEDULER") or "true").strip().lower() not in {"0", "false", "no"}:
+        scheduler = asyncio.create_task(automations_module.scheduler_loop(stop))
     yield
     stop.set()
-    if task:
-        task.cancel()
-        try:
-            await task
-        except (asyncio.CancelledError, Exception):
-            pass
+    for running in (task, scheduler):
+        if running:
+            running.cancel()
+            try:
+                await running
+            except (asyncio.CancelledError, Exception):
+                pass
 
 
 app = FastAPI(title="Monitoreo de delivery", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 app.include_router(credentials_module.router)
 app.include_router(disputes_module.router)
+app.include_router(stores_module.router)
+app.include_router(catalog_module.router)
+app.include_router(reports_module.router)
+app.include_router(automations_module.router)
+app.include_router(agents_module.router)
 
 
 @app.exception_handler(SettingsError)
@@ -390,13 +406,13 @@ def index(request: Request):
 
 @app.get("/api/snapshot")
 def api_snapshot(request: Request):
-    require_user(request, get_settings())
+    operator(request)
     return load_payload()
 
 
 @app.get("/api/health")
 def api_health(request: Request):
-    require_user(request, get_settings())
+    operator(request)
     payload = load_payload()
     return {
         "status": "ok" if payload.get("available") else "pending",
@@ -410,7 +426,7 @@ def api_health(request: Request):
 
 @app.post("/api/refresh")
 async def api_refresh(request: Request):
-    require_user(request, get_settings())
+    operator(request)
     settings = get_settings()
     try:
         payload = await asyncio.wait_for(
