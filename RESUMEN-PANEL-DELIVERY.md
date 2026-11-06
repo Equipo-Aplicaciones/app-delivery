@@ -39,10 +39,11 @@ La clave de unión es `platform` + `order_id` = `agregador` + `numero_orden`. El
 
 ## Estado actual
 
-- El panel base pasa sus 51 tests (`python -m unittest discover -s tests`). En Windows hace falta `pip install tzdata`; en Linux/Docker no.
+- **Actualización 2026-11-05 21:35 (hora de Chile).** La rama `cursor/panel-disputas-credenciales-8fe5` ([PR #1](https://github.com/juaking1312/app-delivery/pull/1)) habilita todos los módulos de la especificación: credenciales, tiendas, disputas + imágenes, catálogo, reportes, automatizaciones y agentes. Tiene 101 tests OK. Qué se hizo, las decisiones y lo pendiente están en `panel-delivery-fuentes/docs/registro-panel-delivery-rama-1.md`.
+- En Windows hace falta `pip install tzdata`; en Linux/Docker no.
 - No hay secretos en el repositorio: ni cookies, ni tokens, ni `.env`, ni fotos reales.
 - `iterations/v1/apk/app-delivery.apk` es un puntero de Git LFS (133 bytes), no el APK real.
-- Falta construir todos los módulos nuevos. Esta primera ronda cubre credenciales y disputas.
+- Lo que sigue es el deploy al servidor común, la prueba autorizada de disputa Uber y la clave de evidencia (ver el registro).
 
 ## Fuera de alcance por ahora
 

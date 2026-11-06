@@ -467,6 +467,24 @@ def cmd_orders(a):
                          "issues": "; ".join(_iss(x) for x in iss)})
     print(f"{len(rows)} pedidos {s}..{e}", file=sys.stderr); emit(rows, a)
 
+def _download_pictures(urls, folder):
+    """Baja la versión original de cada foto a `folder`. Solo devuelve nombre, tipo y tamaño."""
+    import requests
+    os.makedirs(folder, exist_ok=True); saved = []
+    ext_of = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/heic": ".heic"}
+    for i, u in enumerate(urls, 1):
+        src = (u or {}).get("original") or (u or {}).get("compressed")
+        if not src: saved.append({"index": i, "error": "sin url"}); continue
+        try: r = requests.get(src, timeout=60)
+        except requests.RequestException as e: saved.append({"index": i, "error": type(e).__name__}); continue
+        ct = r.headers.get("content-type", "").split(";")[0]
+        if r.status_code != 200 or not r.content: saved.append({"index": i, "http_status": r.status_code}); continue
+        name = f"{i:02d}{ext_of.get(ct, '.bin')}"
+        fd = os.open(os.path.join(folder, name), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        os.write(fd, r.content); os.close(fd)
+        saved.append({"index": i, "file": name, "content_type": ct, "bytes": len(r.content)})
+    return saved
+
 def cmd_order(a):
     v = [x for x in stores(a)][0]; gv = _gv([v])[0]
     photos = bool(getattr(a, "photos", False))
@@ -483,6 +501,8 @@ def cmd_order(a):
     out = {"order": d["orders"]["order"]}
     if photos:
         pics = d["orders"].get("orderIssuePictures")
+        if getattr(a, "download", None) and isinstance(pics, dict) and pics.get("urls"):
+            pics = {**pics, "files": _download_pictures(pics["urls"], a.download)}
         # no imprimir query firmada de S3 (AWSAccessKeyId / x-amz-security-token)
         if isinstance(pics, dict) and pics.get("urls"):
             red = []
@@ -599,7 +619,8 @@ def main():
     x = rng(common(sp.add_parser("ratings"))); x.set_defaults(f=cmd_ratings)
     x = rng(common(sp.add_parser("orders"))); x.add_argument("--status", action="append", help="DELIVERED, CANCELLED, ...")
     x.add_argument("--issues", action="store_true", help="solo pedidos con reclamos/descuentos/cargos"); x.set_defaults(f=cmd_orders)
-    x = rng(common(sp.add_parser("order"))); x.add_argument("order"); x.add_argument("--photos", action="store_true", help="incluye orderIssuePictures (urls original/compressed/thumbnail)"); x.set_defaults(f=cmd_order)
+    x = rng(common(sp.add_parser("order"))); x.add_argument("order"); x.add_argument("--photos", action="store_true", help="incluye orderIssuePictures (urls original/compressed/thumbnail)")
+    x.add_argument("--download", metavar="DIR", help="con --photos: baja las fotos originales a DIR (no imprime URLs)"); x.set_defaults(f=cmd_order)
     x = rng(common(sp.add_parser("issues"))); x.add_argument("--by-store", action="store_true"); x.set_defaults(f=cmd_issues)
     x = rng(common(sp.add_parser("payouts"))); x.set_defaults(f=cmd_payouts)
     x = rng(common(sp.add_parser("earnings"))); x.set_defaults(f=cmd_earnings)

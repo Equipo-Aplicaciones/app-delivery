@@ -12,13 +12,16 @@ from ..sanitize import looks_like_auth_failure, sanitize
 _DROP_ENV = ("PANEL_USER", "PANEL_PASSWORD", "PANEL_PASSWORD_FILE", "SESSION_SECRET", "AUTH_SECRET")
 
 
-def _child_env() -> dict[str, str]:
-    """Los CLI hijos no heredan secretos del panel."""
+def _child_env(home: str | None = None) -> dict[str, str]:
+    """Los CLI hijos no heredan secretos del panel ni la clave de evidencia."""
     env = {}
     for key, value in os.environ.items():
-        if key in _DROP_ENV or key.startswith("PANEL_") or key.startswith("SESSION_"):
+        if key in _DROP_ENV or key.startswith(("PANEL_", "SESSION_", "EVIDENCIA_")):
             continue
         env[key] = value
+    home = home or os.environ.get("CLI_HOME")
+    if home:
+        env["HOME"] = home
     return env
 
 
@@ -37,19 +40,25 @@ class CliOutput:
     returncode: int
 
 
-def run_json_cli(script: str, args: list[str], cwd: str, timeout: int) -> CliOutput:
+def run_cli(script: str, args: list[str], cwd: str, timeout: int, home: str | None = None) -> subprocess.CompletedProcess:
     cmd = [sys.executable, script, *args]
     try:
-        proc = subprocess.run(
+        return subprocess.run(
             cmd,
             cwd=cwd,
             capture_output=True,
             text=True,
             timeout=timeout,
-            env=_child_env(),
+            env=_child_env(home),
         )
     except subprocess.TimeoutExpired as exc:
-        raise CliError(f"timeout de {timeout}s al ejecutar {script}", auth=False) from exc
+        raise CliError(f"timeout de {timeout}s al ejecutar {os.path.basename(script)}", auth=False) from exc
+    except OSError as exc:
+        raise CliError(f"no se pudo ejecutar {os.path.basename(script)}: {exc.strerror}") from exc
+
+
+def run_json_cli(script: str, args: list[str], cwd: str, timeout: int, home: str | None = None) -> CliOutput:
+    proc = run_cli(script, args, cwd, timeout, home)
     stdout = proc.stdout or ""
     stderr = proc.stderr or ""
     combined = stdout + "\n" + stderr
@@ -60,6 +69,8 @@ def run_json_cli(script: str, args: list[str], cwd: str, timeout: int) -> CliOut
             auth=looks_like_auth_failure(combined),
         )
     text = stdout.strip()
+    if text.startswith("(sin resultados)"):
+        return CliOutput(data=[], stderr=stderr, returncode=proc.returncode)
     if not text:
         raise CliError(
             sanitize(stderr) or "salida vacía",

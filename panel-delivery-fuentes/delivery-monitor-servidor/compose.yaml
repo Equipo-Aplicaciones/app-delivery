@@ -7,12 +7,15 @@ services:
       HOME: /home/app
       TZ: ${TZ:-America/Santiago}
       SNAPSHOT_PATH: /app/data/snapshot.json
+      MEDIA_DIR: /app/media
+      SESSIONS_DIR: /sessions
       UBER_CLI: /app/clients/uber/uber.py
       UBER_CLI_CWD: /app/clients/uber
       PYA_CLI: /app/clients/pya/pya.py
       PYA_CLI_CWD: /app/clients/pya
     volumes:
       - ./data:/app/data
+      - ./media:/app/media
       - ./sessions:/sessions
     expose:
       - "8000"

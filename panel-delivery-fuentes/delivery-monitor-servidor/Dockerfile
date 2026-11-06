@@ -1,8 +1,8 @@
 FROM python:3.12-slim
 
 RUN useradd --create-home --uid 1000 --home-dir /home/app --shell /usr/sbin/nologin app \
-    && mkdir -p /app/data /sessions \
-    && chown app:app /app/data /home/app
+    && mkdir -p /app/data /app/media /sessions \
+    && chown app:app /app/data /app/media /sessions /home/app
 
 WORKDIR /app
 
@@ -22,6 +22,8 @@ ENV HOME=/home/app \
     TZ=America/Santiago \
     PYTHONUNBUFFERED=1 \
     SNAPSHOT_PATH=/app/data/snapshot.json \
+    MEDIA_DIR=/app/media \
+    SESSIONS_DIR=/sessions \
     UBER_CLI=/app/clients/uber/uber.py \
     UBER_CLI_CWD=/app/clients/uber \
     PYA_CLI=/app/clients/pya/pya.py \

@@ -194,6 +194,7 @@
 
   function fillTable(table, headers, rows, emptyText) {
     table.innerHTML = "";
+    table.classList.add("stack");
     const thead = document.createElement("thead");
     const tr = document.createElement("tr");
     headers.forEach((h) => {
@@ -206,6 +207,7 @@
     const tb = document.createElement("tbody");
     if (!rows.length) {
       const r = document.createElement("tr");
+      r.className = "empty";
       const td = document.createElement("td");
       td.colSpan = headers.length;
       td.className = "muted";
@@ -215,8 +217,9 @@
     } else {
       rows.forEach((cols) => {
         const r = document.createElement("tr");
-        cols.forEach((c) => {
+        cols.forEach((c, i) => {
           const td = document.createElement("td");
+          if (headers[i]) td.setAttribute("data-label", headers[i]);
           if (c && typeof c === "object") {
             td.textContent = c.text;
             if (c.cls) td.className = c.cls;
