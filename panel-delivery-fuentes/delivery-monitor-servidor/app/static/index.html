@@ -24,11 +24,11 @@
       <a href="#monitoreo" data-view="monitoreo">Monitoreo</a>
       <a href="#disputas" data-view="disputas">Disputas</a>
       <a href="#credenciales" data-view="credenciales">Credenciales</a>
-      <span class="soon" title="Próxima ronda">Tiendas</span>
-      <span class="soon" title="Próxima ronda">Catálogo</span>
-      <span class="soon" title="Próxima ronda">Reportes</span>
-      <span class="soon" title="Próxima ronda">Automatizaciones</span>
-      <span class="soon" title="Próxima ronda">Agentes</span>
+      <a href="#tiendas" data-view="tiendas">Tiendas</a>
+      <a href="#catalogo" data-view="catalogo">Catálogo</a>
+      <a href="#reportes" data-view="reportes">Reportes</a>
+      <a href="#automatizaciones" data-view="automatizaciones">Automatizaciones</a>
+      <a href="#agentes" data-view="agentes">Agentes</a>
     </nav>
   </header>
 
@@ -227,6 +227,121 @@
         <p class="muted small">Rappi queda pendiente hasta tener CLI y credenciales oficiales. La clave de la API de evidencia de la app delivery se configura en el servidor (<code>EVIDENCIA_API_KEY</code>), no desde aquí.</p>
       </section>
     </div>
+
+    <div class="view" id="view-tiendas" hidden>
+      <section class="top"><div><h1>Tiendas</h1><p class="muted">Prender o pausar locales. Siempre dry-run primero; confirmar solo si el resumen es correcto.</p></div></section>
+      <section>
+        <div class="toolbar">
+          <label>Plataforma <select id="st-plat"><option value="uber">Uber</option><option value="pedidosya">PedidosYa</option></select></label>
+          <label>Buscar <input type="search" id="st-q" placeholder="Nombre"></label>
+          <button type="button" id="st-reload" class="ghost">Recargar listado</button>
+        </div>
+        <p id="st-state" class="state"></p>
+        <div class="table-wrap"><table id="st-table"></table></div>
+        <div class="panel-card" id="st-action">
+          <h2>Acción sobre seleccionadas</h2>
+          <p class="muted small">Marque tiendas en la tabla. Use nombres parciales si prefiere escribirlos abajo.</p>
+          <label class="check"><input type="checkbox" id="st-sel-all"> Seleccionar todas visibles</label>
+          <label>Nombres (uno por línea, opcional) <textarea id="st-names" rows="2" placeholder="Tarragona - Centro"></textarea></label>
+          <div class="row">
+            <button type="button" id="st-activate-dry">Prender (dry-run)</button>
+            <button type="button" class="danger" id="st-activate-go">Prender (confirmar)</button>
+            <button type="button" class="ghost" id="st-pause-dry">Pausar (dry-run)</button>
+            <button type="button" class="ghost danger" id="st-pause-go">Pausar (confirmar)</button>
+          </div>
+          <label id="st-uber-dur-wrap">Duración Uber <select id="st-duration"><option value="rest_of_day">Resto del día</option><option value="10">10 min</option><option value="20">20 min</option><option value="30">30 min</option><option value="60">60 min</option></select></label>
+          <label>Motivo <select id="st-reason"></select></label>
+          <label id="st-pya-min-wrap" hidden>Minutos PYA <input type="number" id="st-minutes" min="1" placeholder="Vacío = resto del turno"></label>
+          <pre id="st-result" class="code-block"></pre>
+        </div>
+      </section>
+    </div>
+
+    <div class="view" id="view-catalogo" hidden>
+      <section class="top"><div><h1>Catálogo</h1><p class="muted">Agotados, reponer ítems y activación masiva de menú (respeta exclusiones del CLI).</p></div></section>
+      <section>
+        <div class="toolbar">
+          <label>Plataforma <select id="cat-plat"><option value="uber">Uber</option><option value="pedidosya">PedidosYa</option></select></label>
+          <label>Filtro tienda <input type="text" id="cat-store" placeholder="Subcadena del nombre"></label>
+          <button type="button" id="cat-load">Ver agotados</button>
+        </div>
+        <p id="cat-state" class="state"></p>
+        <div class="table-wrap"><table id="cat-table"></table></div>
+        <form class="panel-card" id="cat-item-form">
+          <h2>Agotar / reponer producto</h2>
+          <label>Producto <input type="text" id="cat-item" required></label>
+          <label class="check"><input type="checkbox" id="cat-contains"> Coincidencia parcial</label>
+          <label>Tiendas (nombres, uno por línea; vacío = todas) <textarea id="cat-names" rows="2"></textarea></label>
+          <label>Agotar hasta <select id="cat-until"></select></label>
+          <label>Exclusiones extra para activar menú (una por línea) <textarea id="cat-excludes" rows="2"></textarea></label>
+          <div class="row">
+            <button type="submit">Agotar (dry-run)</button>
+            <button type="button" class="danger" id="cat-soldout-go">Agotar (confirmar)</button>
+            <button type="button" class="ghost" id="cat-instock">Reponer (dry-run)</button>
+            <button type="button" class="ghost danger" id="cat-instock-go">Reponer (confirmar)</button>
+          </div>
+          <div class="row">
+            <button type="button" id="cat-menu">Activar menú (dry-run)</button>
+            <button type="button" class="danger" id="cat-menu-go">Activar menú (confirmar)</button>
+          </div>
+          <pre id="cat-result" class="code-block"></pre>
+        </form>
+      </section>
+    </div>
+
+    <div class="view" id="view-reportes" hidden>
+      <section class="top"><div><h1>Reportes</h1><p class="muted">Exportaciones de solo lectura vía los CLI. Los archivos quedan en el servidor.</p></div></section>
+      <section class="panel-card">
+        <label>Reporte <select id="rep-id"></select></label>
+        <p id="rep-desc" class="muted small"></p>
+        <div class="toolbar">
+          <label>Desde <input type="date" id="rep-start"></label>
+          <label>Hasta <input type="date" id="rep-end"></label>
+          <label>Formato <select id="rep-fmt"><option value="json">JSON</option><option value="csv">CSV</option></select></label>
+          <label data-param="store" hidden>Tienda <input type="text" id="rep-store" placeholder="Subcadena del nombre"></label>
+          <label data-param="status" hidden>Estado <select id="rep-status"><option value="">Todos</option><option value="pending">Pendiente</option><option value="charged">Cobrado</option><option value="disputed">Disputado</option><option value="accepted">Aceptado</option><option value="rejected">Rechazado</option></select></label>
+          <label data-param="days" hidden>Días <input type="number" id="rep-days" min="1" max="90" value="30"></label>
+          <label data-param="by_store" class="check" hidden><input type="checkbox" id="rep-bystore"> Agrupar por tienda</label>
+        </div>
+        <button type="button" id="rep-run">Generar reporte</button>
+        <p id="rep-state" class="state"></p>
+        <p id="rep-link"></p>
+        <div class="table-wrap"><table id="rep-preview"></table></div>
+      </section>
+    </div>
+
+    <div class="view" id="view-automatizaciones" hidden>
+      <section class="top"><div><h1>Automatizaciones</h1><p class="muted">Refresh del snapshot o reportes con cron (hora de Chile, mínimo 15 min entre corridas). Escrituras programadas deshabilitadas.</p></div></section>
+      <section>
+        <div id="auto-list" class="cards"></div>
+        <form class="panel-card" id="auto-form">
+          <h2>Nueva automatización</h2>
+          <label>Nombre <input type="text" id="auto-name" required></label>
+          <label>Tipo <select id="auto-kind"><option value="refresh_snapshot">Refresh snapshot</option><option value="report">Reporte</option></select></label>
+          <label>Cron (min hora día mes día-semana; vacío = solo manual) <input type="text" id="auto-cron" placeholder="0 8 * * *" autocomplete="off"></label>
+          <div id="auto-report-wrap" hidden>
+            <label>Reporte <select id="auto-report-id"></select></label>
+            <label>Formato <select id="auto-report-fmt"><option value="csv">CSV</option><option value="json">JSON</option></select></label>
+          </div>
+          <p id="auto-state" class="state"></p>
+          <button type="submit">Guardar</button>
+        </form>
+      </section>
+    </div>
+
+    <div class="view" id="view-agentes" hidden>
+      <section class="top"><div><h1>Agentes</h1><p class="muted">API keys para bots (<code>Authorization: Bearer</code>). La clave completa solo se muestra al crearla; se guarda solo su hash.</p></div></section>
+      <section>
+        <div id="ag-list" class="cards"></div>
+        <form class="panel-card" id="ag-form">
+          <h2>Nuevo agente</h2>
+          <label>Nombre <input type="text" id="ag-name" required></label>
+          <fieldset id="ag-scopes" class="scopes"><legend>Scopes</legend></fieldset>
+          <button type="submit">Crear agente</button>
+          <p id="ag-created" class="state warn"></p>
+        </form>
+      </section>
+    </div>
   </main>
 
   <!-- ===== Ficha de pedido ===== -->
@@ -246,5 +361,6 @@
 
   <script src="/static/app.js"></script>
   <script src="/static/modules.js"></script>
+  <script src="/static/panel-extra.js"></script>
 </body>
 </html>

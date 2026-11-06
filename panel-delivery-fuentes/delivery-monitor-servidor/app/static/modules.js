@@ -70,7 +70,7 @@
   };
 
   // ---------- navegación ----------
-  const VIEWS = ["monitoreo", "disputas", "credenciales"];
+  const VIEWS = ["monitoreo", "disputas", "credenciales", "tiendas", "catalogo", "reportes", "automatizaciones", "agentes"];
   const loaded = {};
 
   function showView() {
@@ -86,6 +86,11 @@
       loaded[view] = true;
       if (view === "disputas") initDisputes();
       if (view === "credenciales") loadCredentials(false);
+      if (view === "tiendas" && window.panelExtra) window.panelExtra.initStores();
+      if (view === "catalogo" && window.panelExtra) window.panelExtra.initCatalog();
+      if (view === "reportes" && window.panelExtra) window.panelExtra.initReports();
+      if (view === "automatizaciones" && window.panelExtra) window.panelExtra.initAutomations();
+      if (view === "agentes" && window.panelExtra) window.panelExtra.initAgents();
     }
   }
   window.addEventListener("hashchange", showView);
