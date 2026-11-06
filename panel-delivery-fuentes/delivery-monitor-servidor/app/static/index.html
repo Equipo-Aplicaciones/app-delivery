@@ -237,23 +237,24 @@
           <button type="button" id="st-reload" class="ghost">Recargar listado</button>
         </div>
         <p id="st-state" class="state"></p>
-        <div class="table-wrap"><table id="st-table"></table></div>
         <div class="panel-card" id="st-action">
           <h2>Acción sobre seleccionadas</h2>
           <p class="muted small">Marque tiendas en la tabla. Use nombres parciales si prefiere escribirlos abajo.</p>
           <label class="check"><input type="checkbox" id="st-sel-all"> Seleccionar todas visibles</label>
+          <p id="st-count" class="muted small">0 seleccionadas</p>
           <label>Nombres (uno por línea, opcional) <textarea id="st-names" rows="2" placeholder="Tarragona - Centro"></textarea></label>
+          <label id="st-uber-dur-wrap">Duración Uber <select id="st-duration"><option value="rest_of_day">Resto del día</option><option value="10">10 min</option><option value="20">20 min</option><option value="30">30 min</option><option value="60">60 min</option></select></label>
+          <label>Motivo <select id="st-reason"></select></label>
+          <label id="st-pya-min-wrap" hidden>Minutos PYA <input type="number" id="st-minutes" min="1" placeholder="Vacío = resto del turno"></label>
           <div class="row">
             <button type="button" id="st-activate-dry">Prender (dry-run)</button>
             <button type="button" class="danger" id="st-activate-go">Prender (confirmar)</button>
             <button type="button" class="ghost" id="st-pause-dry">Pausar (dry-run)</button>
             <button type="button" class="ghost danger" id="st-pause-go">Pausar (confirmar)</button>
           </div>
-          <label id="st-uber-dur-wrap">Duración Uber <select id="st-duration"><option value="rest_of_day">Resto del día</option><option value="10">10 min</option><option value="20">20 min</option><option value="30">30 min</option><option value="60">60 min</option></select></label>
-          <label>Motivo <select id="st-reason"></select></label>
-          <label id="st-pya-min-wrap" hidden>Minutos PYA <input type="number" id="st-minutes" min="1" placeholder="Vacío = resto del turno"></label>
           <pre id="st-result" class="code-block"></pre>
         </div>
+        <div class="table-wrap tall"><table id="st-table"></table></div>
       </section>
     </div>
 

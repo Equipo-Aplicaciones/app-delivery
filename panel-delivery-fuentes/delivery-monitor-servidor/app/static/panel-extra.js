@@ -116,7 +116,7 @@
       const key = stKey(r);
       const box = h("input", { type: "checkbox", "aria-label": "Seleccionar " + (r.name || r.store_id) });
       box.checked = st.selected.has(key);
-      box.addEventListener("change", () => { if (box.checked) st.selected.add(key); else st.selected.delete(key); });
+      box.addEventListener("change", () => { if (box.checked) st.selected.add(key); else st.selected.delete(key); updateCount(); });
       return h("tr", {},
         h("td", {}, box),
         h("td", { text: r.name || r.store_id }),
@@ -128,7 +128,13 @@
         h("td", { text: cell(r.excluded) }));
     }), "Sin tiendas para este filtro.");
     $("st-sel-all").checked = rows.length > 0 && rows.every((r) => st.selected.has(stKey(r)));
+    updateCount();
     return rows;
+  }
+
+  function updateCount() {
+    const n = [...st.selected].filter((k) => k.startsWith($("st-plat").value + ":")).length;
+    $("st-count").textContent = n === 1 ? "1 seleccionada" : n + " seleccionadas";
   }
 
   function fillReasons() {

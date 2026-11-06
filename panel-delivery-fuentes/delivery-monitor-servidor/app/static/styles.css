@@ -82,6 +82,8 @@ code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-
 .code-block { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 0.65rem; font-size: 0.82rem; max-height: 16rem; overflow: auto; white-space: pre-wrap; word-break: break-word; }
 .panel-card textarea { min-height: 3rem; width: 100%; }
 .code-block:empty { display: none; }
+.table-wrap.tall { max-height: 70vh; overflow: auto; margin-top: 1rem; }
+.table-wrap.tall thead th { position: sticky; top: 0; background: var(--paper); z-index: 1; }
 .scopes { border: 1px solid var(--line); border-radius: 8px; padding: 0.5rem 0.75rem; margin: 0.6rem 0; display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; }
 .scopes legend { font-size: 0.88rem; color: var(--muted); padding: 0 0.3rem; }
 .secret-once { font-family: ui-monospace, monospace; font-size: 0.85rem; word-break: break-all; user-select: all; background: var(--paper); border: 1px dashed var(--line); border-radius: 8px; padding: 0.5rem; }
