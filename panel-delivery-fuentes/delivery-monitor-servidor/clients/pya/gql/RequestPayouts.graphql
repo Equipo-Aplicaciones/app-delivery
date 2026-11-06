@@ -1,7 +1,0 @@
-query RequestPayouts($params: DownloadPayoutsRequest!) {
-  finances {
-    downloadPayouts(input: $params) {
-      downloadUrl
-    }
-  }
-}

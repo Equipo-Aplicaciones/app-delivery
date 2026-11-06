@@ -1,9 +1,0 @@
-query DownloadReport($params: DownloadOrdersExportReq!) {
-  orders {
-    ordersExport {
-      downloadOrdersExport(input: $params) {
-        downloadURL
-      }
-    }
-  }
-}

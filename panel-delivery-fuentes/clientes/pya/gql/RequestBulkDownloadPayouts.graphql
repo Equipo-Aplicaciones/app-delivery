@@ -1,7 +1,0 @@
-query RequestBulkDownloadPayouts($params: BulkDownloadPayoutsRequest!) {
-  finances {
-    bulkDownloadPayouts(input: $params) {
-      downloadUrl
-    }
-  }
-}

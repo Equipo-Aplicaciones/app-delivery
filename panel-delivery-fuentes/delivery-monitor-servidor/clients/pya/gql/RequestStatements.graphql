@@ -1,7 +1,0 @@
-query RequestStatements($params: DownloadAdditionalStatementsRequest!) {
-  finances {
-    downloadAdditionalStatements(input: $params) {
-      downloadUrl
-    }
-  }
-}

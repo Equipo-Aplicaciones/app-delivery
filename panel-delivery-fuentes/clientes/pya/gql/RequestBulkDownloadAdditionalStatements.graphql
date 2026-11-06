@@ -1,7 +1,0 @@
-query RequestBulkDownloadAdditionalStatements($params: BulkDownloadAdditionalStatementsRequest!) {
-  finances {
-    bulkDownloadAdditionalStatements(input: $params) {
-      downloadUrl
-    }
-  }
-}
