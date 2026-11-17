@@ -4,10 +4,11 @@ La app solo sube. Otro proyecto lee. Son dos claves distintas y las dos viajan
 en `Authorization: Bearer`, nunca en la URL. La de lectura no se copia a la app.
 
   GET  /healthz
-  POST /v1/evidencia                          clave de subida
+  POST /v1/evidencia                          clave de subida (JPEG o GIF animado)
   GET  /v1/evidencia?agregador=&numero_orden= clave de lectura
   GET  /v1/evidencia/{id}                     clave de lectura
   GET  /v1/evidencia/{id}/imagen              clave de lectura
+  DELETE /v1/evidencia/{id}                   clave de subida, solo fotos recientes
 """
 
 from __future__ import annotations
@@ -19,13 +20,16 @@ import re
 import sqlite3
 import threading
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, quote, urlparse
 
 AGGREGATORS = {"uber", "pedidosya", "rappi"}
 MAX_BYTES = 8_000_000
+# La tienda puede borrar o cambiar las fotos del día. El panel limita al día de Chile;
+# aquí, como resguardo, nunca se borra una foto con más de 36 horas (ya es evidencia).
+DELETE_MAX_AGE = timedelta(hours=36)
 HOST = os.environ.get("EVIDENCIA_HOST", "0.0.0.0")
 PORT = int(os.environ.get("EVIDENCIA_PORT", "8787"))
 ROOT = Path(__file__).resolve().parent.parent
@@ -165,9 +169,19 @@ def valid_order(raw: str) -> str | None:
     return value
 
 
+def media_type(blob: bytes) -> tuple[str, str] | None:
+    """(content_type, extensión) de la evidencia aceptada: foto JPEG o GIF animado de la tienda."""
+    if blob.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg", "jpg"
+    if blob.startswith(b"GIF87a") or blob.startswith(b"GIF89a"):
+        return "image/gif", "gif"
+    return None
+
+
 def insert_photo(agregador: str, numero_orden: str, blob: bytes) -> dict:
+    content_type, ext = media_type(blob) or ("image/jpeg", "jpg")
     image_id = str(uuid.uuid4())
-    storage_name = f"{image_id}.jpg"
+    storage_name = f"{image_id}.{ext}"
     created = now_iso()
     path = FILES / storage_name
     path.write_bytes(blob)
@@ -177,9 +191,9 @@ def insert_photo(agregador: str, numero_orden: str, blob: bytes) -> dict:
                 """
                 INSERT INTO evidencia (
                   id, agregador, numero_orden, storage_name, content_type, byte_size, created_at
-                ) VALUES (?, ?, ?, ?, 'image/jpeg', ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
-                (image_id, agregador, numero_orden, storage_name, len(blob), created),
+                (image_id, agregador, numero_orden, storage_name, content_type, len(blob), created),
             )
             DB.commit()
     except Exception:
@@ -206,6 +220,26 @@ def list_photos(agregador: str, numero_orden: str) -> list[sqlite3.Row]:
 def get_photo(image_id: str) -> sqlite3.Row | None:
     with _lock:
         return DB.execute("SELECT * FROM evidencia WHERE id = ?", (image_id,)).fetchone()
+
+
+def delete_photo(image_id: str) -> str:
+    """Borra la fila y el archivo. Devuelve 'ok', 'no_existe' o 'antigua'."""
+    with _lock:
+        row = DB.execute(
+            "SELECT storage_name, created_at FROM evidencia WHERE id = ?", (image_id,)
+        ).fetchone()
+        if row is None:
+            return "no_existe"
+        try:
+            created = datetime.strptime(row["created_at"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+        except ValueError:
+            return "antigua"
+        if datetime.now(timezone.utc) - created > DELETE_MAX_AGE:
+            return "antigua"
+        DB.execute("DELETE FROM evidencia WHERE id = ?", (image_id,))
+        DB.commit()
+    (FILES / row["storage_name"]).unlink(missing_ok=True)
+    return "ok"
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -278,7 +312,7 @@ class Handler(BaseHTTPRequestHandler):
         if not numero:
             self.send_json({"error": "Falta el número de orden"}, 400)
             return
-        if not blob.startswith(b"\xff\xd8\xff") or len(blob) > MAX_BYTES:
+        if media_type(blob) is None or len(blob) > MAX_BYTES:
             self.send_json({"error": "Falta la foto del pedido"}, 400)
             return
         try:
@@ -287,6 +321,21 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json({"error": "La base no recibió la imagen"}, 500)
             return
         self.send_json(saved, 201)
+
+    def do_DELETE(self) -> None:
+        parts = [p for p in urlparse(self.path).path.split("/") if p]
+        if not (len(parts) == 3 and parts[:2] == ["v1", "evidencia"]):
+            self.send_json({"error": "no encontrado"}, 404)
+            return
+        if not self.require_role("upload"):
+            return
+        result = delete_photo(parts[2])
+        if result == "ok":
+            self.send_json({"deleted": True})
+        elif result == "no_existe":
+            self.send_json({"error": "No existe esa foto"}, 404)
+        else:
+            self.send_json({"error": "Solo se pueden borrar fotos del día"}, 409)
 
     def handle_list(self, query: dict[str, list[str]]) -> None:
         agregador = (query.get("agregador") or [""])[0]
@@ -338,7 +387,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         blob = path.read_bytes()
         self.send_response(200)
-        self.send_header("Content-Type", "image/jpeg")
+        self.send_header("Content-Type", row["content_type"] or "image/jpeg")
         self.send_header("Content-Length", str(len(blob)))
         self.send_header("Cache-Control", "private, max-age=600")
         self.end_headers()

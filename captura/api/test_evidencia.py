@@ -160,6 +160,47 @@ class EvidenciaApiTest(unittest.TestCase):
         status, _, _ = call(self.httpd, "GET", path)
         self.assertEqual(status, 401)
 
+    def test_borra_foto_reciente_con_clave_de_subida(self):
+        _, _, raw = self.post(numero="DEL-1")
+        image_id = json.loads(raw)["id"]
+        status, _, _ = call(self.httpd, "DELETE", f"/v1/evidencia/{image_id}", key=self.read)
+        self.assertEqual(status, 401)
+        status, _, raw = call(self.httpd, "DELETE", f"/v1/evidencia/{image_id}", key=self.upload)
+        self.assertEqual(status, 200)
+        self.assertTrue(json.loads(raw)["deleted"])
+        status, _, _ = call(self.httpd, "GET", f"/v1/evidencia/{image_id}/imagen", key=self.read)
+        self.assertEqual(status, 404)
+        self.assertEqual(list((Path(self.tmp.name) / "files").iterdir()), [])
+        status, _, _ = call(self.httpd, "DELETE", f"/v1/evidencia/{image_id}", key=self.upload)
+        self.assertEqual(status, 404)
+
+    def test_no_borra_fotos_antiguas(self):
+        _, _, raw = self.post(numero="DEL-2")
+        image_id = json.loads(raw)["id"]
+        with self.server._lock:
+            self.server.DB.execute(
+                "UPDATE evidencia SET created_at = ? WHERE id = ?", ("2026-01-01T00:00:00Z", image_id)
+            )
+            self.server.DB.commit()
+        status, _, raw = call(self.httpd, "DELETE", f"/v1/evidencia/{image_id}", key=self.upload)
+        self.assertEqual(status, 409)
+        status, _, _ = call(self.httpd, "GET", f"/v1/evidencia/{image_id}/imagen", key=self.read)
+        self.assertEqual(status, 200)
+
+    def test_acepta_gif_animado_y_lo_sirve_como_gif(self):
+        gif = b"GIF89a" + b"\x01\x00\x01\x00\x00\x00\x00;"
+        _, _, raw = self.post(numero="GIF-1", blob=gif)
+        image_id = json.loads(raw)["id"]
+        status, headers, blob = call(self.httpd, "GET", f"/v1/evidencia/{image_id}/imagen", key=self.read)
+        self.assertEqual(status, 200)
+        self.assertEqual(headers.get("Content-Type"), "image/gif")
+        self.assertEqual(blob, gif)
+        self.assertTrue((Path(self.tmp.name) / "files" / f"{image_id}.gif").is_file())
+
+    def test_rechaza_lo_que_no_es_foto_ni_gif(self):
+        status, _, _ = self.post(numero="PNG-1", blob=b"\x89PNG\r\n\x1a\n")
+        self.assertEqual(status, 400)
+
 
 def url_path(url: str) -> str:
     return "/" + url.split("/", 3)[3]
